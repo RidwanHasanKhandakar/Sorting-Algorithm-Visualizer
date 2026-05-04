@@ -1,5 +1,6 @@
 import pygame
 import random
+import time
 pygame.init()
 class DrawInformation:
     #this are just global color that we will use in our program
@@ -34,7 +35,7 @@ class DrawInformation:
         self.block_height = (self.height -self.TOP_PAD) / (self.max_val - self.min_val)
         self.start_x = self.SIDE_PAD // 2
 
-def draw(draw_info, color_positions={}, algorithm_name="Bubble Sort", ascending=True, min_val=0, max_val=100):
+def draw(draw_info, color_positions={}, algorithm_name="Bubble Sort", ascending=True, min_val=0, max_val=100, duration=None, complexities={}):
     draw_info.window.fill(draw_info.BACKGROUND_COLOR)
     controls = draw_info.FONT.render("R - Reset | Space - Start Sorting | A - Ascending | D - Descending", 1, draw_info.RED)
     draw_info.window.blit(controls,(draw_info.width/2-controls.get_width()/2,5))
@@ -44,6 +45,17 @@ def draw(draw_info, color_positions={}, algorithm_name="Bubble Sort", ascending=
     draw_info.window.blit(hybrid,(draw_info.width/2-hybrid.get_width()/2,55))
     status = draw_info.FONT.render(f"Current: {algorithm_name} ({'Ascending' if ascending else 'Descending'})", 1, draw_info.RED)
     draw_info.window.blit(status,(draw_info.width/2-status.get_width()/2,80))
+    if duration is not None:
+        complexity_text = draw_info.FONT.render(f"Time Complexity: {complexities.get(algorithm_name, 'Unknown')}", 1, draw_info.RED)
+        draw_info.window.blit(complexity_text, (draw_info.width/2 - complexity_text.get_width()/2, 105))
+        if duration < 1e-6:
+            time_str = f"{duration * 1e9:.2f} ns"
+        elif duration < 1e-3:
+            time_str = f"{duration * 1e6:.2f} μs"
+        else:
+            time_str = f"{duration:.2f} s"
+        time_text = draw_info.FONT.render(f"Time Taken: {time_str}", 1, draw_info.RED)
+        draw_info.window.blit(time_text, (draw_info.width/2 - time_text.get_width()/2, 130))
     draw_list(draw_info, color_positions)
     pygame.display.update()
 
@@ -331,6 +343,19 @@ def main():
     sorting_algorithm = bubble_sort
     sorting_algo_name = "Bubble Sort"
     sorting_algo_gena = None
+    start_time = None
+    duration = None
+    complexities = {
+        "Bubble Sort": "O(n²)",
+        "Insertion Sort": "O(n²)",
+        "Merge Sort": "O(n log n)",
+        "Quick Sort": "O(n log n)",
+        "Heap Sort": "O(n log n)",
+        "Bucket Sort": "O(n + k)",
+        "Radix Sort": "O(n * d)",
+        "Tim Sort": "O(n log n)",
+        "Intro Sort": "O(n log n)"
+    }
     while run:
         clock.tick(60)
         if sorting:
@@ -338,8 +363,12 @@ def main():
                 next(sorting_algo_gena)
             except StopIteration:
                 sorting = False
+                if start_time is not None:
+                    end_time = time.time()
+                    duration = end_time - start_time
+                    start_time = None
         else:
-            draw(draw_info, {}, sorting_algo_name, ascending, min_val, max_val)
+            draw(draw_info, {}, sorting_algo_name, ascending, min_val, max_val, duration, complexities)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
@@ -349,8 +378,10 @@ def main():
                 lst = generate_starting_list(n, min_val, max_val)
                 draw_info.set_lst(lst)
                 sorting = False
+                duration = None
             elif event.key == pygame.K_SPACE and not sorting:
                 sorting = True
+                start_time = time.time()
                 sorting_algo_gena = sorting_algorithm(draw_info, ascending, sorting_algo_name, min_val, max_val)
             elif event.key == pygame.K_b and not sorting:
                 sorting_algorithm = bubble_sort
