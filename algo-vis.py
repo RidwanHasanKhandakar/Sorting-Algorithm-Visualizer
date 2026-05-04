@@ -38,12 +38,12 @@ def draw(draw_info, color_positions={}, algorithm_name="Bubble Sort", ascending=
     draw_info.window.fill(draw_info.BACKGROUND_COLOR)
     controls = draw_info.FONT.render("R - Reset | Space - Start Sorting | A - Ascending | D - Descending", 1, draw_info.RED)
     draw_info.window.blit(controls,(draw_info.width/2-controls.get_width()/2,5))
-    sorting = draw_info.FONT.render("I - Insertion Sort | B - Bubble Sort | Z/X Min | C/V Max", 1, draw_info.RED)
+    sorting = draw_info.FONT.render("I - Insertion | B - Bubble | M - Merge | Q - Quick | H - Heap | U - Bucket | R - Radix", 1, draw_info.RED)
     draw_info.window.blit(sorting,(draw_info.width/2-sorting.get_width()/2,30))
+    hybrid = draw_info.FONT.render("T - Tim Sort | N - Intro Sort", 1, draw_info.RED)
+    draw_info.window.blit(hybrid,(draw_info.width/2-hybrid.get_width()/2,55))
     status = draw_info.FONT.render(f"Current: {algorithm_name} ({'Ascending' if ascending else 'Descending'})", 1, draw_info.RED)
-    draw_info.window.blit(status,(draw_info.width/2-status.get_width()/2,55))
-    range_status = draw_info.FONT.render(f"Range: {min_val} - {max_val}", 1, draw_info.RED)
-    draw_info.window.blit(range_status,(draw_info.width/2-range_status.get_width()/2,80))
+    draw_info.window.blit(status,(draw_info.width/2-status.get_width()/2,80))
     draw_list(draw_info, color_positions)
     pygame.display.update()
 
@@ -93,6 +93,230 @@ def insertion_sort(draw_info, ascending=True, algorithm_name="Insertion Sort", m
         yield True
     return lst
 
+def merge_sort(draw_info, ascending=True, algorithm_name="Merge Sort", min_val=0, max_val=100):
+    lst = draw_info.lst
+
+    def merge(start, mid, end):
+        left = lst[start:mid+1]
+        right = lst[mid+1:end+1]
+        i = j = 0
+        k = start
+        while i < len(left) and j < len(right):
+            if (left[i] <= right[j] and ascending) or (left[i] >= right[j] and not ascending):
+                lst[k] = left[i]
+                i += 1
+            else:
+                lst[k] = right[j]
+                j += 1
+            draw(draw_info, {k: draw_info.GREEN}, algorithm_name, ascending, min_val, max_val)
+            yield True
+            k += 1
+        while i < len(left):
+            lst[k] = left[i]
+            draw(draw_info, {k: draw_info.GREEN}, algorithm_name, ascending, min_val, max_val)
+            yield True
+            i += 1
+            k += 1
+        while j < len(right):
+            lst[k] = right[j]
+            draw(draw_info, {k: draw_info.GREEN}, algorithm_name, ascending, min_val, max_val)
+            yield True
+            j += 1
+            k += 1
+
+    def merge_sort_helper(start, end):
+        if start < end:
+            mid = (start + end) // 2
+            yield from merge_sort_helper(start, mid)
+            yield from merge_sort_helper(mid+1, end)
+            yield from merge(start, mid, end)
+
+    yield from merge_sort_helper(0, len(lst)-1)
+    return lst
+
+def quick_sort(draw_info, ascending=True, algorithm_name="Quick Sort", min_val=0, max_val=100):
+    lst = draw_info.lst
+
+    def partition(low, high):
+        pivot = lst[high]
+        i = low - 1
+        for j in range(low, high):
+            if (lst[j] < pivot and ascending) or (lst[j] > pivot and not ascending):
+                i += 1
+                lst[i], lst[j] = lst[j], lst[i]
+                draw(draw_info, {i: draw_info.RED, j: draw_info.GREEN}, algorithm_name, ascending, min_val, max_val)
+                yield True
+        lst[i+1], lst[high] = lst[high], lst[i+1]
+        draw(draw_info, {i+1: draw_info.GREEN}, algorithm_name, ascending, min_val, max_val)
+        yield True
+        return i+1
+
+    def quick_sort_helper(low, high):
+        if low < high:
+            pi = yield from partition(low, high)
+            yield from quick_sort_helper(low, pi-1)
+            yield from quick_sort_helper(pi+1, high)
+
+    yield from quick_sort_helper(0, len(lst)-1)
+    return lst
+
+def heap_sort(draw_info, ascending=True, algorithm_name="Heap Sort", min_val=0, max_val=100):
+    lst = draw_info.lst
+
+    def heapify(n, i):
+        if ascending:
+            largest = i
+            l = 2 * i + 1
+            r = 2 * i + 2
+            if l < n and lst[l] > lst[largest]:
+                largest = l
+            if r < n and lst[r] > lst[largest]:
+                largest = r
+        else:
+            smallest = i
+            l = 2 * i + 1
+            r = 2 * i + 2
+            if l < n and lst[l] < lst[smallest]:
+                smallest = l
+            if r < n and lst[r] < lst[smallest]:
+                smallest = r
+            largest = smallest  # for not ascending, it's min-heap
+
+        if largest != i:
+            lst[i], lst[largest] = lst[largest], lst[i]
+            draw(draw_info, {i: draw_info.RED, largest: draw_info.GREEN}, algorithm_name, ascending, min_val, max_val)
+            yield True
+            yield from heapify(n, largest)
+
+    n = len(lst)
+    for i in range(n//2 - 1, -1, -1):
+        yield from heapify(n, i)
+    for i in range(n-1, 0, -1):
+        lst[i], lst[0] = lst[0], lst[i]
+        draw(draw_info, {i: draw_info.RED, 0: draw_info.GREEN}, algorithm_name, ascending, min_val, max_val)
+        yield True
+        yield from heapify(i, 0)
+    return lst
+
+def bucket_sort(draw_info, ascending=True, algorithm_name="Bucket Sort", min_val=0, max_val=100):
+    lst = draw_info.lst
+    bucket_count = 10
+    buckets = [[] for _ in range(bucket_count)]
+    for val in lst:
+        index = int((val - min_val) / (max_val - min_val + 1) * bucket_count)
+        if index == bucket_count:
+            index -= 1
+        buckets[index].append(val)
+    for bucket in buckets:
+        # simple insertion sort for each bucket
+        for i in range(1, len(bucket)):
+            key = bucket[i]
+            j = i - 1
+            while j >= 0 and ((bucket[j] > key and ascending) or (bucket[j] < key and not ascending)):
+                bucket[j+1] = bucket[j]
+                j -= 1
+            bucket[j+1] = key
+    index = 0
+    for bucket in buckets:
+        for val in bucket:
+            lst[index] = val
+            draw(draw_info, {index: draw_info.GREEN}, algorithm_name, ascending, min_val, max_val)
+            yield True
+            index += 1
+    return lst
+
+def radix_sort(draw_info, ascending=True, algorithm_name="Radix Sort", min_val=0, max_val=100):
+    lst = draw_info.lst
+    max_val_in_lst = max(lst)
+    exp = 1
+    while max_val_in_lst // exp > 0:
+        count = [0] * 10
+        output = [0] * len(lst)
+        for val in lst:
+            index = (val // exp) % 10
+            count[index] += 1
+        for i in range(1, 10):
+            count[i] += count[i-1]
+        for i in range(len(lst)-1, -1, -1):
+            index = (lst[i] // exp) % 10
+            output[count[index]-1] = lst[i]
+            count[index] -= 1
+        for i in range(len(lst)):
+            lst[i] = output[i]
+            draw(draw_info, {i: draw_info.GREEN}, algorithm_name, ascending, min_val, max_val)
+            yield True
+        exp *= 10
+    return lst
+
+def tim_sort(draw_info, ascending=True, algorithm_name="Tim Sort", min_val=0, max_val=100):
+    # Simplified Tim Sort (similar to merge sort)
+    lst = draw_info.lst
+
+    def merge(start, mid, end):
+        left = lst[start:mid+1]
+        right = lst[mid+1:end+1]
+        i = j = 0
+        k = start
+        while i < len(left) and j < len(right):
+            if (left[i] <= right[j] and ascending) or (left[i] >= right[j] and not ascending):
+                lst[k] = left[i]
+                i += 1
+            else:
+                lst[k] = right[j]
+                j += 1
+            draw(draw_info, {k: draw_info.GREEN}, algorithm_name, ascending, min_val, max_val)
+            yield True
+            k += 1
+        while i < len(left):
+            lst[k] = left[i]
+            draw(draw_info, {k: draw_info.GREEN}, algorithm_name, ascending, min_val, max_val)
+            yield True
+            i += 1
+            k += 1
+        while j < len(right):
+            lst[k] = right[j]
+            draw(draw_info, {k: draw_info.GREEN}, algorithm_name, ascending, min_val, max_val)
+            yield True
+            j += 1
+            k += 1
+
+    def tim_sort_helper(start, end):
+        if start < end:
+            mid = (start + end) // 2
+            yield from tim_sort_helper(start, mid)
+            yield from tim_sort_helper(mid+1, end)
+            yield from merge(start, mid, end)
+
+    yield from tim_sort_helper(0, len(lst)-1)
+    return lst
+
+def intro_sort(draw_info, ascending=True, algorithm_name="Intro Sort", min_val=0, max_val=100):
+    # Simplified Intro Sort (similar to quick sort)
+    lst = draw_info.lst
+
+    def partition(low, high):
+        pivot = lst[high]
+        i = low - 1
+        for j in range(low, high):
+            if (lst[j] < pivot and ascending) or (lst[j] > pivot and not ascending):
+                i += 1
+                lst[i], lst[j] = lst[j], lst[i]
+                draw(draw_info, {i: draw_info.RED, j: draw_info.GREEN}, algorithm_name, ascending, min_val, max_val)
+                yield True
+        lst[i+1], lst[high] = lst[high], lst[i+1]
+        draw(draw_info, {i+1: draw_info.GREEN}, algorithm_name, ascending, min_val, max_val)
+        yield True
+        return i+1
+
+    def intro_sort_helper(low, high):
+        if low < high:
+            pi = yield from partition(low, high)
+            yield from intro_sort_helper(low, pi-1)
+            yield from intro_sort_helper(pi+1, high)
+
+    yield from intro_sort_helper(0, len(lst)-1)
+    return lst
+
 def main():
     run = True
     clock = pygame.time.Clock()
@@ -100,7 +324,8 @@ def main():
     min_val = 0
     max_val =100
     lst = generate_starting_list(n,min_val,max_val)
-    draw_info = DrawInformation(800,600,lst)
+    width = max(800, n + 200)
+    draw_info = DrawInformation(width,600,lst)
     sorting = False
     ascending = True
     sorting_algorithm = bubble_sort
@@ -133,30 +358,27 @@ def main():
             elif event.key == pygame.K_i and not sorting:
                 sorting_algorithm = insertion_sort
                 sorting_algo_name = "Insertion Sort"
-            elif event.key == pygame.K_z and not sorting:
-                min_val -= 1
-                if min_val > max_val:
-                    min_val = max_val
-                lst = generate_starting_list(n, min_val, max_val)
-                draw_info.set_lst(lst)
+            elif event.key == pygame.K_m and not sorting:
+                sorting_algorithm = merge_sort
+                sorting_algo_name = "Merge Sort"
+            elif event.key == pygame.K_q and not sorting:
+                sorting_algorithm = quick_sort
+                sorting_algo_name = "Quick Sort"
+            elif event.key == pygame.K_h and not sorting:
+                sorting_algorithm = heap_sort
+                sorting_algo_name = "Heap Sort"
+            elif event.key == pygame.K_u and not sorting:
+                sorting_algorithm = bucket_sort
+                sorting_algo_name = "Bucket Sort"
             elif event.key == pygame.K_x and not sorting:
-                min_val += 1
-                if min_val > max_val:
-                    min_val = max_val
-                lst = generate_starting_list(n, min_val, max_val)
-                draw_info.set_lst(lst)
-            elif event.key == pygame.K_c and not sorting:
-                max_val -= 1
-                if max_val < min_val:
-                    max_val = min_val
-                lst = generate_starting_list(n, min_val, max_val)
-                draw_info.set_lst(lst)
-            elif event.key == pygame.K_v and not sorting:
-                max_val += 1
-                if max_val < min_val:
-                    max_val = min_val
-                lst = generate_starting_list(n, min_val, max_val)
-                draw_info.set_lst(lst)
+                sorting_algorithm = radix_sort
+                sorting_algo_name = "Radix Sort"
+            elif event.key == pygame.K_t and not sorting:
+                sorting_algorithm = tim_sort
+                sorting_algo_name = "Tim Sort"
+            elif event.key == pygame.K_n and not sorting:
+                sorting_algorithm = intro_sort
+                sorting_algo_name = "Intro Sort"
             elif event.key == pygame.K_a and not sorting:
                 ascending = True
             elif event.key == pygame.K_d and not sorting:
