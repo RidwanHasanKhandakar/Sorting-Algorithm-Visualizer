@@ -214,20 +214,19 @@ def bucket_sort(draw_info, ascending=True, algorithm_name="Bucket Sort", min_val
     lst = draw_info.lst
     bucket_count = 10
     buckets = [[] for _ in range(bucket_count)]
+
     for val in lst:
         index = int((val - min_val) / (max_val - min_val + 1) * bucket_count)
-        if index == bucket_count:
-            index -= 1
+        if index >= bucket_count:
+            index = bucket_count - 1
         buckets[index].append(val)
+
     for bucket in buckets:
-        # simple insertion sort for each bucket
-        for i in range(1, len(bucket)):
-            key = bucket[i]
-            j = i - 1
-            while j >= 0 and ((bucket[j] > key and ascending) or (bucket[j] < key and not ascending)):
-                bucket[j+1] = bucket[j]
-                j -= 1
-            bucket[j+1] = key
+        bucket.sort(reverse=not ascending)
+
+    if not ascending:
+        buckets.reverse()
+
     index = 0
     for bucket in buckets:
         for val in bucket:
@@ -235,6 +234,7 @@ def bucket_sort(draw_info, ascending=True, algorithm_name="Bucket Sort", min_val
             draw(draw_info, {index: draw_info.GREEN}, algorithm_name, ascending, min_val, max_val)
             yield True
             index += 1
+
     return lst
 
 def radix_sort(draw_info, ascending=True, algorithm_name="Radix Sort", min_val=0, max_val=100):
