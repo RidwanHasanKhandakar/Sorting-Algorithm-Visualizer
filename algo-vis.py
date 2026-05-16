@@ -39,7 +39,7 @@ def draw(draw_info, color_positions={}, algorithm_name="Bubble Sort", ascending=
     draw_info.window.fill(draw_info.BACKGROUND_COLOR)
     controls = draw_info.FONT.render("R - Reset | Space - Start Sorting | A - Ascending | D - Descending", 1, draw_info.RED)
     draw_info.window.blit(controls,(draw_info.width/2-controls.get_width()/2,5))
-    sorting = draw_info.FONT.render("I - Insertion | B - Bubble | M - Merge | Q - Quick | H - Heap | U - Bucket | R - Radix", 1, draw_info.RED)
+    sorting = draw_info.FONT.render("I - Insertion | B - Bubble | M - Merge | Q - Quick | H - Heap | U - Bucket | R - Radix | S - Selection", 1, draw_info.RED)
     draw_info.window.blit(sorting,(draw_info.width/2-sorting.get_width()/2,30))
     hybrid = draw_info.FONT.render("T - Tim Sort | N - Intro Sort", 1, draw_info.RED)
     draw_info.window.blit(hybrid,(draw_info.width/2-hybrid.get_width()/2,55))
@@ -438,6 +438,9 @@ def main():
             elif event.key == pygame.K_n and not sorting:
                 sorting_algorithm = intro_sort
                 sorting_algo_name = "Intro Sort"
+            elif event.key == pygame.K_s and not sorting:
+                sorting_algorithm = selection_sort
+                sorting_algo_name = "Selection Sort"
             elif event.key == pygame.K_a and not sorting:
                 ascending = True
             elif event.key == pygame.K_d and not sorting:
